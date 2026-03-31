@@ -83,6 +83,10 @@ def _validate_production_env() -> None:
 
 def _ensure_column_exists(table_name: str, column_name: str, ddl: str) -> bool:
     inspector = inspect(db.engine)
+    existing_tables = set(inspector.get_table_names())
+    if table_name not in existing_tables:
+        return False
+
     existing_columns = {column["name"] for column in inspector.get_columns(table_name)}
     if column_name in existing_columns:
         return False
@@ -151,7 +155,12 @@ def create_app():
     app.register_blueprint(main_bp)
 
     with app.app_context():
-        db.create_all()
+        environment = (app.config.get("ENVIRONMENT") or "").lower()
+        auto_create_schema = environment != "production" or (
+            (os.getenv("AUTO_CREATE_SCHEMA") or "").strip().lower() in {"1", "true", "yes", "on"}
+        )
+        if auto_create_schema:
+            db.create_all()
         _backfill_legacy_schema()
 
     return app

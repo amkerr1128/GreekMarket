@@ -10,7 +10,7 @@ services:
     rootDir: greekmarket-backend
     plan: starter
     buildCommand: pip install -r requirements.txt
-    preDeployCommand: python -m flask --app wsgi.py db upgrade
+    preDeployCommand: python render_predeploy.py
     startCommand: gunicorn --bind 0.0.0.0:$PORT wsgi:app
     healthCheckPath: /readyz
     envVars:
