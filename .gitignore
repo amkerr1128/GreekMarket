@@ -1,14 +1,67 @@
-# Ignore environment files
-*.env
+# Environment files
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 
-# Node modules
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+greekmarket-backend/venv/
+
+# Local backend runtime files
+greekmarket-backend/instance/*.db
+greekmarket-backend/instance/*.sqlite
+greekmarket-backend/instance/*.sqlite3
+*.db-journal
+
+# Node / frontend build output
 node_modules/
+**/node_modules/
+dist/
+build/
+coverage/
 
 # Logs
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Build output
-dist/
-build/
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Misc local tooling
+.cache/
+tmp/
+temp/
+
+# Local repo-root scratch files
+/package-lock.json
+/test*.jpg

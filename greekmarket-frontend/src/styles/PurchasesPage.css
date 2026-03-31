@@ -1,41 +1,170 @@
-.purchases-container {
-  max-width: 800px;
-  margin: 40px auto;
-  padding: 0 20px;
+.purchases-page {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 16px 96px;
+  display: grid;
+  gap: 18px;
 }
 
-.purchases-list {
+.purchases-hero,
+.purchases-alert,
+.purchases-empty {
+  padding: 24px;
+}
+
+.purchases-hero {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.purchases-hero h1,
+.purchases-empty h3 {
+  margin: 0;
+  color: var(--text-strong);
+  letter-spacing: -0.04em;
+}
+
+.purchases-hero h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  color: var(--brand-strong);
+  font-weight: 800;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.pill-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text);
+  font-weight: 800;
+}
+
+.pill-link.primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+}
+
+.purchase-list {
+  display: grid;
+  gap: 12px;
 }
 
 .purchase-card {
-  display: flex;
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
   gap: 16px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 16px;
-  align-items: center;
-  background-color: #f9f9f9;
+  padding: 14px;
+  color: var(--text);
 }
 
-.purchase-card img {
-  width: 100px;
-  height: 100px;
+.purchase-media {
+  overflow: hidden;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(123, 82, 255, 0.12), rgba(123, 82, 255, 0.02));
+}
+
+.purchase-media img {
+  width: 100%;
+  height: 100%;
+  min-height: 140px;
   object-fit: cover;
-  border-radius: 4px;
+  display: block;
 }
 
-.purchase-info h3 {
-  margin: 0 0 8px;
+.purchase-info {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
 }
 
-.purchase-info p {
-  margin: 4px 0;
+.purchase-topline {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
 }
 
-.purchase-info .date {
-  font-size: 0.9em;
-  color: gray;
+.purchase-topline h3 {
+  margin: 0;
+  color: var(--text-strong);
+}
+
+.purchase-price {
+  color: var(--brand-strong);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.purchase-seller {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seller-name {
+  color: var(--text-strong);
+  font-weight: 800;
+}
+
+.purchase-date {
+  margin: 0;
+  color: var(--muted);
+}
+
+.purchases-empty {
+  display: grid;
+  gap: 12px;
+}
+
+.purchases-empty p,
+.purchases-alert {
+  margin: 0;
+  color: var(--muted);
+}
+
+.purchases-alert {
+  display: grid;
+  gap: 8px;
+}
+
+.purchases-alert strong {
+  color: var(--text-strong);
+}
+
+.purchases-alert {
+  color: var(--text-strong);
+}
+
+.purchases-error-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .purchases-hero {
+    flex-direction: column;
+  }
+
+  .purchase-card {
+    grid-template-columns: 1fr;
+  }
 }

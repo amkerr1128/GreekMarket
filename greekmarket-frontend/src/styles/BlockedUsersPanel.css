@@ -1,0 +1,106 @@
+.blocked-users-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.blocked-status,
+.blocked-error {
+  margin: 0;
+}
+
+.blocked-status {
+  color: var(--brand-strong);
+}
+
+.blocked-error {
+  color: #ef6b6b;
+}
+
+.blocked-list {
+  display: grid;
+  gap: 10px;
+}
+
+.blocked-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.blocked-card-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.blocked-card-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.blocked-card-copy strong {
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.blocked-card-copy span,
+.blocked-card-copy small {
+  color: var(--muted);
+}
+
+.blocked-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.blocked-mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.65rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-strong);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.blocked-mini-button.danger {
+  color: #db4d63;
+}
+
+.blocked-empty {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px dashed color-mix(in srgb, var(--brand) 18%, var(--border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--brand-soft) 32%, transparent);
+}
+
+.blocked-empty strong {
+  color: var(--text-strong);
+}
+
+.blocked-empty span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .blocked-card-actions {
+    display: grid;
+  }
+
+  .blocked-mini-button {
+    width: 100%;
+  }
+}
+

@@ -20,6 +20,21 @@ API.interceptors.request.use((config) => {
 let isRefreshing = false;
 let queue = [];
 
+const AUTH_ENDPOINTS = [
+  "/login",
+  "/register",
+  "/token/refresh",
+  "/logout",
+  "/password-reset/request",
+  "/password-reset/status",
+  "/password-reset/resend",
+  "/password-reset/confirm",
+];
+
+function isAuthEndpoint(url = "") {
+  return AUTH_ENDPOINTS.some((endpoint) => url === endpoint || url?.startsWith(`${endpoint}?`));
+}
+
 // Helper to resolve queued requests after refresh
 function resolveQueue(error, token = null) {
   queue.forEach(({ resolve, reject }) => {
@@ -37,7 +52,7 @@ API.interceptors.response.use(
     const status = error?.response?.status;
 
     // If there's no config or it's the refresh endpoint itself, just fail
-    if (!original || original._isRefreshCall) {
+    if (!original || original._isRefreshCall || isAuthEndpoint(original.url)) {
       return Promise.reject(error);
     }
 

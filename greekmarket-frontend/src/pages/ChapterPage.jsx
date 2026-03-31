@@ -1,196 +1,548 @@
-// src/pages/ChapterPage.jsx
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { loadFollowNetwork, normalizeFollowCount, toggleFollow } from "../api/follows";
 import API from "../api/axios";
+import Avatar from "../components/Avatar";
+import FollowSheet from "../components/FollowSheet";
+import ReturnButton from "../components/ReturnButton";
+import PostCard from "../components/PostCard";
+import SocialCountsBar from "../components/SocialCountsBar";
+import { useNotifications } from "../context/NotificationsContext";
+import { isNetworkFailure } from "../utils/authErrors";
+import { getChapterLetterFallback } from "../utils/chapterLetters";
 import "../styles/ChapterPage.css";
-
-// Reuse the same Greek-letter logic you liked on SchoolPage
-const toGreek = (name = "") => {
-  const map = {
-    alpha: "Α", beta: "Β", gamma: "Γ", delta: "Δ", epsilon: "Ε",
-    zeta: "Ζ", eta: "Η", theta: "Θ", iota: "Ι", kappa: "Κ",
-    lambda: "Λ", mu: "Μ", nu: "Ν", xi: "Ξ", omicron: "Ο",
-    pi: "Π", rho: "Ρ", sigma: "Σ", tau: "Τ", upsilon: "Υ",
-    phi: "Φ", chi: "Χ", psi: "Ψ", omega: "Ω",
-  };
-
-  const parts = name.toLowerCase().split(/\s+/).filter(Boolean);
-  const out = [];
-  for (const raw of parts) {
-    // ignore parenthetical nicknames like (Beta)
-    if (/^\(.+\)$/.test(raw)) continue;
-    const clean = raw.replace(/[()]/g, "");
-    if (map[clean]) out.push(map[clean]);
-    if (out.length === 3) break; // cap at 3 glyphs
-  }
-  if (out.length) return out.join("");
-
-  // fallback to first two initials
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(w => w[0]?.toUpperCase() || "")
-    .join("");
-};
 
 export default function ChapterPage() {
   const { id: chapterIdParam } = useParams();
   const chapterId = Number(chapterIdParam);
+  const location = useLocation();
   const navigate = useNavigate();
+  const { pushNotification } = useNotifications();
+  const returnTo = location.state?.returnTo || "/search";
 
-  const [data, setData] = useState(null);      // { chapter, is_member, stats, recent_posts, members }
-  const [joining, setJoining] = useState(false);
-  const [err, setErr] = useState("");
+  const [data, setData] = useState(null);
+  const [followingAction, setFollowingAction] = useState(false);
+  const [requestingRole, setRequestingRole] = useState("");
+  const [requestFeedback, setRequestFeedback] = useState("");
+  const [requestError, setRequestError] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [requestActionState, setRequestActionState] = useState({ id: 0, status: "" });
+  const [followNetwork, setFollowNetwork] = useState({
+    counts: { followers: 0, following: 0 },
+    available: { followers: false, following: false },
+  });
+  const [followSheet, setFollowSheet] = useState({ open: false, tab: "followers" });
+  const [viewerId, setViewerId] = useState(null);
+  const chapter = data?.chapter;
 
   useEffect(() => {
-    let mounted = true;
+    let active = true;
+
     (async () => {
-      setLoading(true);
-      setErr("");
       try {
-        // New backend endpoint below in routes.py
-        const { data } = await API.get(`/chapters/${chapterId}`);
-        if (!mounted) return;
-        setData(data);
-      } catch (e) {
-        if (!mounted) return;
-        setErr(e?.response?.data?.error || "Failed to load chapter.");
-      } finally {
-        if (mounted) setLoading(false);
+        const me = await API.get("/me");
+        if (!active) return;
+        setViewerId(me?.data?.user_id || null);
+      } catch {
+        if (!active) return;
+        setViewerId(null);
       }
     })();
-    return () => { mounted = false; };
-  }, [chapterId]);
 
-  const c = data?.chapter;
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const { data } = await API.get(`/chapters/${chapterId}`);
+        if (!active) return;
+        setData(data);
+      } catch (err) {
+        if (!active) return;
+        setError(
+          isNetworkFailure(err)
+            ? "Chapter details could not be loaded. The backend may be offline or blocked by CORS."
+            : err?.response?.data?.error || "Failed to load chapter. Search again or refresh if this chapter was just created."
+        );
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [chapterId, refreshKey]);
+
+  useEffect(() => {
+    let active = true;
+    if (!chapter?.chapter_id) return undefined;
+
+    (async () => {
+      try {
+        const network = await loadFollowNetwork("chapter", chapter.chapter_id);
+        if (!active) return;
+        setFollowNetwork(network);
+      } catch {
+        if (!active) return;
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [chapter?.chapter_id]);
   const members = useMemo(() => data?.members ?? [], [data]);
   const posts = useMemo(() => data?.recent_posts ?? [], [data]);
+  const pendingRequests = useMemo(() => data?.pending_requests ?? [], [data]);
+  const avatarText = getChapterLetterFallback(chapter?.name || "", 3);
+  const isFollowing = Boolean(data?.is_following || data?.is_member);
+  const isMember = Boolean(data?.is_member);
+  const isAdmin = Boolean(data?.is_admin);
+  const memberRequestPending = data?.member_request_status === "pending";
+  const adminRequestPending = data?.admin_request_status === "pending";
+  const followerCount =
+    followNetwork.counts.followers ??
+    normalizeFollowCount(data, ["followers_count", "follower_count", "followers"]);
+  const followingCount =
+    followNetwork.counts.following ??
+    normalizeFollowCount(data, ["following_count", "following", "following_total"]);
 
-  async function join() {
+  async function updateFollow(nextFollowState) {
     try {
-      setJoining(true);
-      await API.post(`/chapters/${chapterId}/join`);
-      // optimistic UI
-      setData(d => d ? { ...d, is_member: true, stats: { ...d.stats, members: (d.stats?.members ?? 0) + 1 } } : d);
-    } catch (e) {
-      setErr(e?.response?.data?.error || "Failed to join chapter.");
+      setFollowingAction(true);
+      setRequestError("");
+      setRequestFeedback("");
+      await toggleFollow("chapter", chapterId, nextFollowState);
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              is_following: nextFollowState,
+            }
+          : current
+      );
+      setFollowNetwork((current) => ({
+        ...current,
+        counts: {
+          ...current.counts,
+          followers: Math.max(0, (current.counts.followers ?? followerCount) + (nextFollowState ? 1 : -1)),
+        },
+      }));
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        navigate("/login");
+        return;
+      }
+      setRequestError(
+        err?.response?.data?.error || "Could not update your chapter follow state. Refresh the page and try again."
+      );
     } finally {
-      setJoining(false);
+      setFollowingAction(false);
+    }
+  }
+
+  async function submitRequest(role) {
+    try {
+      setRequestingRole(role);
+      setRequestError("");
+      setRequestFeedback("");
+      const endpoint = role === "admin" ? "admin-request" : "membership-request";
+      const { data: response } = await API.post(`/chapters/${chapterId}/${endpoint}`);
+      pushNotification({
+        type: "chapter",
+        title: role === "admin" ? "Chapter admin request sent" : "Chapter member request sent",
+        body:
+          role === "admin"
+            ? `Your admin request for ${chapter?.name || "this chapter"} is waiting for review.`
+            : `Your membership request for ${chapter?.name || "this chapter"} is waiting for review.`,
+        targetUrl: `/chapter/${chapterId}`,
+        sourceKey: `chapter:${chapterId}:${role}:${Date.now()}`,
+      });
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              is_following: true,
+              member_request_status:
+                role === "member" ? response?.request?.status || "pending" : current.member_request_status,
+              admin_request_status:
+                role === "admin" ? response?.request?.status || "pending" : current.admin_request_status,
+              pending_requests:
+                current.can_review_requests && response?.request
+                  ? [response.request, ...(current.pending_requests || [])]
+                  : current.pending_requests,
+            }
+          : current
+      );
+      setRequestFeedback(
+        role === "admin"
+          ? "Admin request sent to chapter leadership."
+          : "Membership request sent to chapter leadership."
+      );
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        navigate("/login");
+        return;
+      }
+      setRequestError(
+        err?.response?.data?.error || "Could not submit that request. Refresh the page and try again, or contact a chapter admin if it keeps failing."
+      );
+    } finally {
+      setRequestingRole("");
+    }
+  }
+
+  async function reviewRequest(requestId, status) {
+    try {
+      setRequestActionState({ id: requestId, status });
+      setRequestError("");
+      setRequestFeedback("");
+      const { data: response } = await API.patch(`/chapters/${chapterId}/requests/${requestId}`, { status });
+      const requestPayload = response?.request;
+      setData((current) => {
+        if (!current) return current;
+        const nextPending = (current.pending_requests || []).filter((item) => item.request_id !== requestId);
+        const approvedRole = requestPayload?.requested_role;
+        const approvedRequester = requestPayload?.requester;
+        let nextMembers = current.members || [];
+        let nextStats = current.stats || {};
+
+        if (status === "approved" && approvedRequester?.user_id) {
+          const existingIndex = nextMembers.findIndex((item) => item.user_id === approvedRequester.user_id);
+          if (approvedRole === "member" && existingIndex === -1) {
+            nextMembers = [
+              ...nextMembers,
+              {
+                ...approvedRequester,
+                role: "member",
+              },
+            ];
+            nextStats = {
+              ...nextStats,
+              members: (nextStats.members ?? nextMembers.length) + 1,
+            };
+          }
+          if (approvedRole === "admin") {
+            nextMembers =
+              existingIndex >= 0
+                ? nextMembers.map((item) =>
+                    item.user_id === approvedRequester.user_id ? { ...item, role: "admin" } : item
+                  )
+                : nextMembers;
+          }
+        }
+
+        return {
+          ...current,
+          pending_requests: nextPending,
+          members: nextMembers,
+          stats: nextStats,
+        };
+      });
+      setRequestFeedback(`Request ${status}.`);
+    } catch (err) {
+      setRequestError(
+        err?.response?.data?.error || "Could not update that request. Reload the chapter page and try again."
+      );
+    } finally {
+      setRequestActionState({ id: 0, status: "" });
     }
   }
 
   if (loading) {
     return (
       <div className="chapter-page">
-        <header className="cp-header">
-          <button className="btn ghost" onClick={() => navigate(-1)}>Back</button>
-        </header>
-        <div className="cp-loading">Loading…</div>
+        <div className="page-return-row">
+          <ReturnButton fallbackTo={returnTo} />
+        </div>
+        <div className="chapter-hero card">
+          <p className="eyebrow">Chapter</p>
+          <h1>Loading chapter...</h1>
+          <p className="muted">Fetching chapter details and membership state.</p>
+        </div>
       </div>
     );
   }
 
-  if (err || !c) {
+  if (error && !chapter) {
     return (
       <div className="chapter-page">
-        <header className="cp-header">
-          <button className="btn ghost" onClick={() => navigate(-1)}>Back</button>
-        </header>
-        <p className="cp-error">{err || "Chapter not found."}</p>
+        <div className="page-return-row">
+          <ReturnButton fallbackTo={returnTo} />
+        </div>
+        <div className="chapter-hero card">
+          <p className="eyebrow">Chapter</p>
+          <h1>Could not load chapter</h1>
+          <p className="muted">{error}</p>
+          <div className="chapter-actions">
+            <button type="button" className="secondary-action" onClick={() => setRefreshKey((x) => x + 1)}>
+              Retry
+            </button>
+            <button type="button" className="secondary-action" onClick={() => navigate("/search")}>
+              Search chapters
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
-
-  const greek = toGreek(c.name);
 
   return (
     <div className="chapter-page">
-      <header className="cp-header">
-        <div className="cp-left">
-          <div className="cp-avatar">{greek}</div>
-          <div className="cp-title">
-            <h1>{c.name}</h1>
-            <div className="cp-sub">
-              {c.type || "Chapter"} {c.nickname ? <>• “{c.nickname}”</> : null}
+      <div className="page-return-row">
+        <ReturnButton fallbackTo={returnTo} />
+      </div>
+      <section className="chapter-hero card">
+        <div className="chapter-hero-main">
+          <Avatar
+            size="xl"
+            className="chapter-avatar"
+            fallback={avatarText || "CP"}
+            user={{ handle: chapter?.name, profile_picture_url: chapter?.profile_picture_url }}
+          />
+          <div className="chapter-copy">
+            <p className="eyebrow">Chapter</p>
+            <h1>{chapter?.name}</h1>
+            <p className="muted">
+              {chapter?.type || "Chapter"}
+              {chapter?.nickname ? ` - "${chapter.nickname}"` : ""}
+              {chapter?.school_name ? ` at ${chapter.school_name}` : ""}
+            </p>
+            <SocialCountsBar
+              items={[
+                {
+                  label: "Followers",
+                  value: followerCount,
+                  onClick: () => setFollowSheet({ open: true, tab: "followers" }),
+                },
+                {
+                  label: "Following",
+                  value: followingCount,
+                  onClick: () => setFollowSheet({ open: true, tab: "following" }),
+                },
+                {
+                  label: "Members",
+                  value: data?.stats?.members ?? 0,
+                },
+              ]}
+            />
+            <div className="chapter-actions">
+              {isFollowing ? (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  disabled={isMember || followingAction}
+                  onClick={() => {
+                    if (!isMember) updateFollow(false);
+                  }}
+                >
+                  {isMember ? "Following" : followingAction ? "Saving..." : "Unfollow chapter"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => updateFollow(true)}
+                  disabled={followingAction}
+                >
+                  {followingAction ? "Following..." : "Follow chapter"}
+                </button>
+              )}
+              {isAdmin ? (
+                <button type="button" className="primary-action success" disabled>
+                  Chapter admin
+                </button>
+              ) : isMember ? (
+                <>
+                  <button type="button" className="primary-action success" disabled>
+                    Approved member
+                  </button>
+                  {adminRequestPending ? (
+                    <button type="button" className="secondary-action" disabled>
+                      Admin request pending
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="primary-action"
+                      disabled={requestingRole === "admin"}
+                      onClick={() => submitRequest("admin")}
+                    >
+                      {requestingRole === "admin" ? "Sending..." : "Request admin access"}
+                    </button>
+                  )}
+                </>
+              ) : memberRequestPending ? (
+                <button type="button" className="primary-action" disabled>
+                  Membership requested
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="primary-action"
+                  onClick={() => submitRequest("member")}
+                  disabled={requestingRole === "member"}
+                >
+                  {requestingRole === "member" ? "Sending..." : "Request member access"}
+                </button>
+              )}
             </div>
+            {requestFeedback ? <p className="chapter-inline-status success">{requestFeedback}</p> : null}
+            {requestError ? <p className="chapter-inline-status error">{requestError}</p> : null}
           </div>
         </div>
-        <div className="cp-right">
-          <button className="btn ghost" onClick={() => navigate(-1)}>Back</button>
-          {data?.is_member ? (
-            <button className="btn success" disabled>Joined</button>
-          ) : (
-            <button className="btn primary" onClick={join} disabled={joining}>
-              {joining ? "Joining…" : "Join Chapter"}
-            </button>
-          )}
-        </div>
-      </header>
 
-      <section className="cp-stats">
-        <div className="stat-card">
-          <div className="stat-value">{data?.stats?.members ?? 0}</div>
-          <div className="stat-label">Members</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{data?.stats?.recent_posts ?? 0}</div>
-          <div className="stat-label">Recent Posts</div>
+        <div className="chapter-stats">
+          <div className="stat-card card">
+            <span className="stat-value">{data?.stats?.members ?? 0}</span>
+            <span className="stat-label">Members</span>
+          </div>
+          <div className="stat-card card">
+            <span className="stat-value">{data?.stats?.recent_posts ?? 0}</span>
+            <span className="stat-label">Recent posts</span>
+          </div>
         </div>
       </section>
 
-      <section className="cp-section">
-        <div className="cp-section-head">
-          <h3>Recent posts</h3>
-          <div className="muted">{posts.length}</div>
-        </div>
-        {posts.length === 0 ? (
-          <div className="cp-empty">No recent posts yet.</div>
-        ) : (
-          <div className="cp-posts">
-            {posts.map(p => (
-              <a key={p.post_id} className="post-card" href={`/post/${p.post_id}`}>
-                <div className="post-thumb">
-                  {p.image_url ? <img src={p.image_url} alt="" /> : <div className="thumb-fallback">No image</div>}
-                </div>
-                <div className="post-meta">
-                  <div className="post-title">{p.title}</div>
-                  <div className="post-sub">
-                    <span className="pill">{p.type}</span>
-                    {p.price != null && <span className="pill">${Number(p.price).toFixed(2)}</span>}
-                    <span className="pill handle">@{p.user_handle}</span>
+      {data?.can_review_requests ? (
+        <section className="chapter-panel card">
+          <div className="panel-head">
+            <h3>Pending requests</h3>
+            <span className="muted">{pendingRequests.length}</span>
+          </div>
+          {pendingRequests.length ? (
+            <div className="chapter-request-list">
+              {pendingRequests.map((item) => {
+                const busyApprove = requestActionState.id === item.request_id && requestActionState.status === "approved";
+                const busyReject = requestActionState.id === item.request_id && requestActionState.status === "rejected";
+                return (
+                  <div key={item.request_id} className="chapter-request-card">
+                    <div className="chapter-request-copy">
+                      <Avatar
+                        size="sm"
+                        user={{
+                          first_name: item.requester?.first_name,
+                          last_name: item.requester?.last_name,
+                          handle: item.requester?.handle,
+                          profile_picture_url: item.requester?.profile_picture_url,
+                        }}
+                      />
+                      <div>
+                        <strong>{item.requester?.display_name || "Unknown requester"}</strong>
+                        <span>
+                          @{item.requester?.handle || "unknown"} - wants {item.requested_role} access
+                        </span>
+                        {item.note ? <span>{item.note}</span> : null}
+                      </div>
+                    </div>
+                    <div className="chapter-request-actions">
+                      <button
+                        type="button"
+                        className="secondary-action"
+                        disabled={busyApprove || busyReject}
+                        onClick={() => reviewRequest(item.request_id, "approved")}
+                      >
+                        {busyApprove ? "Approving..." : "Approve"}
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary-action danger"
+                        disabled={busyApprove || busyReject}
+                        onClick={() => reviewRequest(item.request_id, "rejected")}
+                      >
+                        {busyReject ? "Rejecting..." : "Reject"}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </a>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="empty-state">
+              No chapter requests are waiting right now. New member and admin requests will show up here automatically as people apply.
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      <section className="chapter-panel card">
+        <div className="panel-head">
+          <h3>Recent posts</h3>
+          <span className="muted">{posts.length}</span>
+        </div>
+        {posts.length ? (
+          <div className="post-grid">
+            {posts.map((post) => (
+              <PostCard key={post.post_id} post={post} />
             ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            {isMember || isAdmin
+              ? "No chapter posts yet. Be the first approved member to create one, or browse the wider school marketplace in the meantime."
+              : "No chapter posts yet. Follow this chapter and check back later, or browse the school marketplace instead."}
           </div>
         )}
       </section>
 
-      <section className="cp-section">
-        <div className="cp-section-head">
+      <section className="chapter-panel card">
+        <div className="panel-head">
           <h3>Members</h3>
-          <div className="muted">{members.length}</div>
+          <span className="muted">{members.length}</span>
         </div>
-        {members.length === 0 ? (
-          <div className="cp-empty">No members yet.</div>
-        ) : (
-          <ul className="cp-members">
-            {members.map(m => (
-              <li key={m.user_id} className="member-row">
-                <img className="member-avatar" src={m.profile_picture_url || "/default-avatar.png"} alt="" />
+        {members.length ? (
+          <div className="member-grid">
+            {members.map((member) => (
+              <div key={member.user_id} className="member-card">
+                <Avatar
+                  size="sm"
+                  user={{
+                    first_name: member.first_name,
+                    last_name: member.last_name,
+                    handle: member.handle,
+                    profile_picture_url: member.profile_picture_url,
+                  }}
+                />
                 <div className="member-meta">
                   <div className="member-name">
-                    {m.first_name} {m.last_name} <span className="muted">@{m.handle}</span>
+                    {member.first_name} {member.last_name}
                   </div>
-                  <div className="member-role">{m.role}</div>
+                  <div className="muted">
+                    @{member.handle}
+                    {member.role ? ` - ${member.role}` : ""}
+                  </div>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
+        ) : (
+          <div className="empty-state">
+            {data?.can_review_requests
+              ? "No approved members yet. When people request access, you can approve them from the request queue above."
+              : "No approved members yet. Follow the chapter or request member access to be first in line when membership opens up."}
+          </div>
         )}
       </section>
+
+      <FollowSheet
+        open={followSheet.open}
+        kind="chapter"
+        entityId={chapter?.chapter_id}
+        entityLabel={chapter?.name || "Chapter"}
+        initialTab={followSheet.tab}
+        currentUserId={viewerId}
+        onClose={() => setFollowSheet({ open: false, tab: "followers" })}
+      />
     </div>
   );
 }

@@ -1,0 +1,97 @@
+.avatar-fallback {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  box-sizing: border-box;
+  padding: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 240, 255, 0.95));
+  border: 3px solid rgba(108, 82, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(67, 42, 171, 0.14);
+  color: var(--brand-strong);
+  flex-shrink: 0;
+}
+
+.avatar-fallback img {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+}
+
+.avatar-fallback.has-photo {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.avatar-shell {
+  display: none;
+}
+
+.avatar-icon,
+.avatar-mark {
+  position: relative;
+  z-index: 1;
+}
+
+.avatar-icon {
+  width: 58%;
+  height: 58%;
+  display: block;
+}
+
+.avatar-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 100%;
+  max-width: 100%;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--brand-strong);
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.avatar-mark-long {
+  font-size: 0.82em;
+  letter-spacing: -0.08em;
+}
+
+.avatar-sm {
+  width: 36px;
+  height: 36px;
+  font-size: 0.8rem;
+}
+
+.avatar-md {
+  width: 56px;
+  height: 56px;
+  font-size: 1rem;
+}
+
+.avatar-lg {
+  width: 72px;
+  height: 72px;
+  font-size: 1.1rem;
+}
+
+.avatar-xl {
+  width: 96px;
+  height: 96px;
+  font-size: 1.25rem;
+}
+
+.avatar-soft {
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(123, 82, 255, 0.72), rgba(39, 31, 95, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}

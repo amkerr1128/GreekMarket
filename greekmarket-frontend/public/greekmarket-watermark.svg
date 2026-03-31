@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220" role="img" aria-label="Greek Market watermark">
+  <defs>
+    <linearGradient id="wm-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe17b" />
+      <stop offset="100%" stop-color="#f4c44d" />
+    </linearGradient>
+  </defs>
+  <g transform="translate(18 34)">
+    <rect x="0" y="0" width="86" height="86" fill="none" stroke="#0d2b63" stroke-width="6" />
+    <path
+      d="M16 38c0-7 5-12 12-12h30c7 0 12 5 12 12"
+      fill="none"
+      stroke="url(#wm-gold)"
+      stroke-linecap="round"
+      stroke-width="7"
+    />
+    <path
+      d="M23 33h43"
+      fill="none"
+      stroke="url(#wm-gold)"
+      stroke-linecap="round"
+      stroke-width="6"
+    />
+    <path
+      d="M16 39c-5 0-9 4-9 9s4 9 9 9"
+      fill="none"
+      stroke="url(#wm-gold)"
+      stroke-linecap="round"
+      stroke-width="6"
+    />
+    <path
+      d="M70 39c5 0 9 4 9 9s-4 9-9 9"
+      fill="none"
+      stroke="url(#wm-gold)"
+      stroke-linecap="round"
+      stroke-width="6"
+    />
+    <rect x="23" y="54" width="44" height="6" rx="3" fill="url(#wm-gold)" />
+    <rect x="28" y="60" width="10" height="26" rx="4" fill="url(#wm-gold)" />
+    <rect x="40" y="60" width="10" height="26" rx="4" fill="url(#wm-gold)" />
+    <rect x="52" y="60" width="10" height="26" rx="4" fill="url(#wm-gold)" />
+  </g>
+  <g fill="#0d2b63" font-family="Aptos, Segoe UI, Arial, sans-serif" font-weight="800">
+    <text x="122" y="96" font-size="42" letter-spacing="1.4">GREEK</text>
+    <text x="122" y="140" font-size="42" letter-spacing="1.4">MARKET</text>
+  </g>
+</svg>

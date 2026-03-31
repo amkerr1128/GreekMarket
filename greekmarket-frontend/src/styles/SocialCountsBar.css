@@ -1,0 +1,47 @@
+.social-counts-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.social-counts-item {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--bg-strong);
+  color: var(--text);
+  text-align: left;
+}
+
+.social-counts-item strong {
+  color: var(--text-strong);
+  font-size: 1.18rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.social-counts-item span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.social-counts-item.clickable {
+  border-color: color-mix(in srgb, var(--brand) 16%, var(--border));
+  background: color-mix(in srgb, var(--brand-soft) 44%, var(--bg-surface));
+}
+
+.social-counts-item.clickable:hover {
+  box-shadow: var(--shadow-soft);
+}
+
+.social-counts-item.active {
+  background: var(--brand-soft);
+  border-color: color-mix(in srgb, var(--brand) 22%, var(--border));
+}
+

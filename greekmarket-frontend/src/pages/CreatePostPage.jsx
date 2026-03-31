@@ -1,45 +1,49 @@
-// src/pages/CreatePostPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../api/axios";
+import FancySelect from "../components/FancySelect";
+import { useNotifications } from "../context/NotificationsContext";
 import "../styles/CreatePostPage.css";
 
 const TYPES = ["apparel", "accessories", "stickers", "tickets", "other"];
+const TYPE_OPTIONS = TYPES.map((item) => ({
+  value: item,
+  label: item[0].toUpperCase() + item.slice(1),
+  meta: "Choose the best fit for your listing",
+}));
 
 export default function CreatePostPage() {
   const navigate = useNavigate();
-
-  // Auth + gating
   const [me, setMe] = useState(null);
   const [loadingMe, setLoadingMe] = useState(true);
-
-  // Form
   const [type, setType] = useState("apparel");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [files, setFiles] = useState([]);
-  const [visibility] = useState("public"); // future: allow "school" / "chapter"
-
-  // UX
+  const [filePreviews, setFilePreviews] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [okMsg, setOkMsg] = useState("");
+  const { pushNotification } = useNotifications();
 
   const canSubmit = useMemo(() => {
     if (!title.trim()) return false;
     if (!type) return false;
-    if (price && isNaN(Number(price))) return false;
+    if (price && Number.isNaN(Number(price))) return false;
     return true;
   }, [title, type, price]);
+  const hasVerifiedContact = Boolean(
+    me?.has_verified_contact || me?.contact_verification?.has_verified_contact
+  );
 
   useEffect(() => {
     (async () => {
       try {
         const { data } = await API.get("/me");
         setMe(data);
-      } catch (e) {
-        if (e?.response?.status === 401) {
+      } catch (err) {
+        if (err?.response?.status === 401) {
           localStorage.removeItem("token");
           navigate("/login");
           return;
@@ -51,15 +55,61 @@ export default function CreatePostPage() {
     })();
   }, [navigate]);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  useEffect(() => {
+    const previews = files.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+      name: file.name,
+    }));
+
+    setFilePreviews(previews);
+
+    return () => {
+      previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [files]);
+
+  function addFiles(nextFiles) {
+    setFiles((current) => {
+      const existing = new Set(current.map((file) => `${file.name}:${file.size}:${file.lastModified}`));
+      const additions = nextFiles.filter((file) => !existing.has(`${file.name}:${file.size}:${file.lastModified}`));
+      return [...current, ...additions];
+    });
+  }
+
+  function handleFilesChange(event) {
+    addFiles(Array.from(event.target.files || []));
+    event.target.value = "";
+  }
+
+  function removeFile(index) {
+    setFiles((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  function setCoverImage(index) {
+    setFiles((current) => {
+      if (index <= 0 || index >= current.length) return current;
+      const next = [...current];
+      const [picked] = next.splice(index, 1);
+      next.unshift(picked);
+      return next;
+    });
+  }
+
+  function clearFiles() {
+    setFiles([]);
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
     setError("");
     setOkMsg("");
 
     if (!me?.school_id) {
-      setError("Please select your school before creating a post.");
+      setError("Join your school before creating a post.");
       return;
     }
+
     if (!canSubmit) {
       setError("Please complete the required fields.");
       return;
@@ -67,62 +117,61 @@ export default function CreatePostPage() {
 
     setSubmitting(true);
     try {
-      // 1) Upload images (optional)
       let image_urls = [];
-      if (files && files.length > 0) {
-        const uploads = [];
-        for (const f of files) {
-          const fd = new FormData();
-          fd.append("image", f);
-          uploads.push(
-            API.post("/upload-image", fd, {
-              headers: { "Content-Type": "multipart/form-data" },
-            }).then((res) => res.data?.url)
-          );
-        }
-        image_urls = (await Promise.all(uploads)).filter(Boolean);
+      if (files?.length) {
+        const formData = new FormData();
+        files.forEach((file) => {
+          formData.append("images", file);
+        });
+        const response = await API.post("/upload-image", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        image_urls = Array.isArray(response?.data?.urls)
+          ? response.data.urls.filter(Boolean)
+          : [response?.data?.url].filter(Boolean);
       }
 
-      // 2) Create the post
       const payload = {
         type,
         title: title.trim(),
         description: description.trim() || null,
         price: price ? Number(price) : null,
-        visibility,
+        visibility: "public",
         image_urls,
       };
 
       const { data } = await API.post("/posts", payload);
-      setOkMsg("Post created!");
-      setTimeout(() => navigate(`/post/${data.post_id ?? ""}` || "/browse"), 400);
+      setOkMsg("Post created.");
+      pushNotification({
+        type: "post",
+        title: "Listing published",
+        body: title.trim(),
+        targetUrl: data?.post_id ? `/post/${data.post_id}` : "/browse",
+        sourceKey: `post:${data?.post_id || Date.now()}`,
+      });
 
-      // reset form
+      setTimeout(() => {
+        navigate(data?.post_id ? `/post/${data.post_id}` : "/browse");
+      }, 350);
+
       setTitle("");
       setPrice("");
       setDescription("");
       setFiles([]);
     } catch (err) {
-      const status = err?.response?.status;
-      const msg =
-        err?.response?.data?.error ||
-        err?.message ||
-        `Request failed${status ? ` (HTTP ${status})` : ""}`;
-      setError(msg);
-      // eslint-disable-next-line no-console
-      console.error("Create post error:", err, err?.response?.data);
+      setError(err?.response?.data?.error || err?.message || "Could not create your post.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  // Loading / gating UI
   if (loadingMe) {
     return (
-      <div className="create-post-wrap">
-        <div className="create-card">
-          <h2 className="create-title">Create a New Post</h2>
-          <p className="muted">Loading…</p>
+      <div className="create-post-page">
+        <div className="create-hero card">
+          <p className="eyebrow">Create listing</p>
+          <h2>Preparing your post editor</h2>
+          <p className="muted">Loading your profile and school membership...</p>
         </div>
       </div>
     );
@@ -130,99 +179,178 @@ export default function CreatePostPage() {
 
   if (!me?.school_id) {
     return (
-      <div className="create-post-wrap">
-        <div className="create-card">
-          <h2 className="create-title">Create a New Post</h2>
-          <div className="gate-card">
-            <h3>Join a school to start posting</h3>
-            <p className="muted">
-              You’ll need to join your school’s community before you can create posts.
-              Search for your school, open its page, and tap <b>Join</b>.
-            </p>
-            <div className="gate-actions">
-              <Link to="/search?q=" className="btn primary">
-                Find my school →
-              </Link>
-              <Link to="/browse" className="btn">
-                Browse posts
-              </Link>
-            </div>
+      <div className="create-post-page">
+        <section className="create-hero card">
+          <p className="eyebrow">Create listing</p>
+          <h2>Join a school to start posting</h2>
+          <p className="muted">
+            You need to be part of a school community before you can publish listings.
+          </p>
+          <div className="create-actions">
+            <Link to="/search?q=" className="action primary">
+              Find my school
+            </Link>
+            <Link to="/browse" className="action">
+              Browse posts
+            </Link>
           </div>
-
-          {error && <div className="error mt">{error}</div>}
-        </div>
+        </section>
       </div>
     );
   }
 
-  // Main form
+  if (!hasVerifiedContact) {
+    return (
+      <div className="create-post-page">
+        <section className="create-hero card">
+          <p className="eyebrow">Create listing</p>
+          <h2>Verify your contact before listing items</h2>
+          <p className="muted">
+            You can browse, follow schools and chapters, and finish setup first. A verified email or phone is required before the marketplace lets you publish listings.
+          </p>
+          <div className="create-actions">
+            <Link to="/verify" className="action primary">
+              Verify account
+            </Link>
+            <Link to="/browse" className="action">
+              Browse posts
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
-    <div className="create-post-wrap">
-      <form className="create-card" onSubmit={handleSubmit}>
-        <h2 className="create-title">Create a New Post</h2>
+    <div className="create-post-page">
+      <section className="create-hero card">
+        <div>
+          <p className="eyebrow">Create listing</p>
+          <h1>Sell something with a cleaner flow.</h1>
+          <p className="muted">
+            Keep it simple: a clear title, a fair price, and a few photos make the post feel
+            immediately credible.
+          </p>
+        </div>
+        <div className="hero-badge">
+          <span>Verified seller flow active</span>
+        </div>
+      </section>
 
-        <label className="field">
-          <span>Category</span>
-          <select value={type} onChange={(e) => setType(e.target.value)}>
-            {TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t[0].toUpperCase() + t.slice(1)}
-              </option>
-            ))}
-          </select>
-        </label>
+      <form className="create-grid" onSubmit={handleSubmit}>
+        <section className="create-card card">
+          <div className="field">
+            <span>Category</span>
+            <FancySelect
+              value={type}
+              onChange={setType}
+              ariaLabel="Listing category"
+              options={TYPE_OPTIONS}
+            />
+          </div>
 
-        <label className="field">
-          <span>Title</span>
-          <input
-            type="text"
-            placeholder="What are you selling?"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-        </label>
+          <div className="field">
+            <span>Title</span>
+            <input
+              type="text"
+              placeholder="What are you selling?"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+            />
+          </div>
 
-        <label className="field">
-          <span>Price (USD)</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            placeholder="e.g., 25"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-        </label>
+          <div className="field">
+            <span>Price (USD)</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="e.g. 25"
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
+            />
+          </div>
 
-        <label className="field">
-          <span>Description (optional)</span>
-          <textarea
-            rows={4}
-            placeholder="Add details, condition, sizing, etc."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </label>
+          <div className="field">
+            <span>Description</span>
+            <textarea
+              rows={6}
+              placeholder="Condition, sizing, pickup details, and anything else a buyer should know."
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </div>
 
-        <label className="field">
-          <span>Photos (optional)</span>
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={(e) => setFiles(Array.from(e.target.files || []))}
-          />
-          {files?.length > 0 && (
-            <div className="muted small mt">{files.length} file(s) selected</div>
-          )}
-        </label>
+          <div className="field">
+            <span>Photos</span>
+            <label className="upload-field">
+              <span className="upload-copy">Choose photos</span>
+              <span className="upload-meta">
+                {files.length ? `${files.length} photo${files.length === 1 ? "" : "s"} selected` : "PNG, JPG, WEBP"}
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFilesChange}
+              />
+            </label>
+            <p className="helper">
+              {files.length
+                ? "Drag-in replacements by picking more files, then choose the cover image from the previews below."
+                : "Add multiple clear images so buyers can see the item from more than one angle."}
+            </p>
+            {filePreviews.length ? (
+              <div className="media-previews">
+                <div className="media-previews-head">
+                  <span>Photo order</span>
+                  <button type="button" className="media-clear" onClick={clearFiles}>
+                    Clear all
+                  </button>
+                </div>
+                <div className="media-preview-grid">
+                  {filePreviews.map((preview, index) => (
+                    <div key={`${preview.name}-${index}`} className="media-preview-card">
+                      <img src={preview.url} alt={preview.name} className="media-preview-image" />
+                      {index === 0 ? <span className="media-cover-chip">Cover</span> : null}
+                      <div className="media-preview-copy">
+                        <strong>{preview.name}</strong>
+                        <span>{Math.round(preview.file.size / 1024)} KB</span>
+                      </div>
+                      <div className="media-preview-actions">
+                        {index > 0 ? (
+                          <button type="button" className="media-mini-btn" onClick={() => setCoverImage(index)}>
+                            Set cover
+                          </button>
+                        ) : null}
+                        <button type="button" className="media-mini-btn danger" onClick={() => removeFile(index)}>
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
 
-        <button className="btn primary block" type="submit" disabled={!canSubmit || submitting}>
-          {submitting ? "Creating…" : "Create Post"}
-        </button>
+          <button className="primary-action" type="submit" disabled={!canSubmit || submitting}>
+            {submitting ? "Creating..." : "Create post"}
+          </button>
 
-        {error && <div className="error mt">{error}</div>}
-        {okMsg && <div className="ok mt">{okMsg}</div>}
+          {error ? <p className="message error">{error}</p> : null}
+          {okMsg ? <p className="message success">{okMsg}</p> : null}
+        </section>
+
+        <aside className="create-side card">
+          <h3>Tips for a strong post</h3>
+          <ul>
+            <li>Use a short title buyers can scan quickly.</li>
+            <li>Set a price that feels easy to compare.</li>
+            <li>Add clean photos with good lighting.</li>
+            <li>Describe size, condition, and pickup notes.</li>
+          </ul>
+        </aside>
       </form>
     </div>
   );

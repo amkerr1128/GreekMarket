@@ -1,0 +1,269 @@
+.completion-card {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.completion-banner {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+}
+
+.completion-banner-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.completion-banner-copy {
+  min-width: 0;
+}
+
+.completion-banner-copy .eyebrow {
+  margin: 0 0 4px;
+}
+
+.completion-banner-text {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.completion-banner-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.completion-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.completion-head h3 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.completion-head .muted {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.completion-summary {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--border));
+}
+
+.completion-summary strong {
+  color: var(--brand-strong);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.completion-summary span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.completion-progress {
+  height: 12px;
+  padding: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-soft) 52%, var(--bg-strong));
+  border: 1px solid color-mix(in srgb, var(--brand) 12%, var(--border));
+  overflow: hidden;
+}
+
+.completion-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+}
+
+.completion-list {
+  display: grid;
+  gap: 10px;
+}
+
+.completion-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+}
+
+.completion-row.complete {
+  background: color-mix(in srgb, var(--brand-soft) 42%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--brand) 16%, var(--border));
+}
+
+.completion-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand-soft) 70%, var(--bg-strong));
+  color: var(--brand-strong);
+  font-weight: 800;
+}
+
+.completion-mark span {
+  font-size: 0.92rem;
+}
+
+.completion-check {
+  width: 18px;
+  height: 18px;
+}
+
+.completion-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.completion-copy strong {
+  color: var(--text-strong);
+  overflow-wrap: anywhere;
+}
+
+.completion-copy span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.completion-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.completion-action,
+.completion-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.8rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-strong);
+  color: var(--text);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.completion-action.primary,
+.completion-primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+}
+
+.completion-action.secondary {
+  background: var(--bg-strong);
+}
+
+.completion-chip.complete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 0.8rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  border: 1px solid color-mix(in srgb, var(--brand) 16%, var(--border));
+  font-weight: 800;
+}
+
+.completion-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.completion-footer-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.completion-footer-copy strong {
+  color: var(--text-strong);
+}
+
+.completion-footer-copy span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.completion-card.compact .completion-row {
+  grid-template-columns: 38px minmax(0, 1fr);
+}
+
+.completion-card.compact .completion-actions,
+.completion-card.compact .completion-footer {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .completion-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .completion-banner-actions {
+    justify-content: flex-start;
+  }
+
+  .completion-head,
+  .completion-footer {
+    flex-direction: column;
+  }
+
+  .completion-summary {
+    justify-items: start;
+  }
+
+  .completion-row {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .completion-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    margin-left: 52px;
+  }
+}

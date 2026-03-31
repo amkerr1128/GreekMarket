@@ -1,6 +1,6 @@
 # seed.py
 from app import create_app, db
-from app.models import School, Chapter, User
+from app.models import Chapter, Post, PostImage, School, User
 from sqlalchemy import and_
 from werkzeug.security import generate_password_hash
 
@@ -106,6 +106,36 @@ def get_or_create_user(user_info: dict, school_id: int) -> User:
     return user
 
 
+def ensure_preview_profile_pictures() -> None:
+    from app.routes.common import build_placeholder_avatar_url
+
+    users = User.query.order_by(User.user_id.asc()).all()
+    updated = 0
+    for user in users:
+        if not user.profile_picture_url:
+            display_name = f"{user.first_name} {user.last_name}".strip() or user.handle
+            user.profile_picture_url = build_placeholder_avatar_url(display_name)
+            updated += 1
+    if updated:
+        db.session.commit()
+    print(f"🖼️ Profile pictures ensured for {updated} users.")
+
+
+def ensure_preview_post_images() -> None:
+    from app.routes.common import build_placeholder_post_image_url
+
+    posts = Post.query.order_by(Post.post_id.asc()).all()
+    added = 0
+    for post in posts:
+        if post.images:
+            continue
+        db.session.add(PostImage(post_id=post.post_id, url=build_placeholder_post_image_url(post.title)))
+        added += 1
+    if added:
+        db.session.commit()
+    print(f"🖼️ Post images ensured for {added} posts.")
+
+
 def main():
     app = create_app()
     with app.app_context():
@@ -131,7 +161,11 @@ def main():
             user = get_or_create_user(DEFAULT_USER, fsu.school_id)
             print(f"✅ Default user ready: {user.email} (id={user.user_id}, handle=@{user.handle})")
 
-        # 4) Summary
+        # 4) Preview-friendly assets for seeded data
+        ensure_preview_profile_pictures()
+        ensure_preview_post_images()
+
+        # 5) Summary
         total_chapters = Chapter.query.filter_by(school_id=fsu.school_id).count()
         print(f"📊 Summary → school_id={fsu.school_id}, chapters={total_chapters}")
 

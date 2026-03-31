@@ -1,0 +1,18 @@
+.return-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  padding: 0.78rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+  font-weight: 800;
+}
+
+.return-button-icon {
+  width: 18px;
+  height: 18px;
+}

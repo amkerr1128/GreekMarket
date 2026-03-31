@@ -23,13 +23,22 @@
 }
 
 .onboard-error {
+  display: grid;
+  gap: 8px;
   color: #c62828;
   margin: 8px 0 12px;
 }
 
 .onboard-loading, .onboard-empty {
+  display: grid;
+  gap: 8px;
   color: #666;
   margin-top: 12px;
+}
+
+.onboard-empty strong,
+.onboard-error strong {
+  color: var(--text-strong);
 }
 
 .onboard-list {
@@ -73,3 +82,5 @@
 .btn-primary:disabled { opacity: 0.6; cursor: default; }
 .btn-secondary { background: #f0f0f7; color: #333; }
 .onboard-actions { display: flex; gap: 8px; }
+.onboard-inline-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.onboard-link-btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }

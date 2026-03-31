@@ -1,0 +1,19 @@
+<svg width="960" height="960" viewBox="0 0 960 960" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="960" rx="96" fill="#F5F1FF"/>
+  <rect x="36" y="36" width="888" height="888" rx="72" fill="url(#frameGlow)"/>
+  <rect x="92" y="92" width="776" height="776" rx="56" fill="#FCFBFF" fill-opacity="0.96"/>
+  <text x="480" y="176" text-anchor="middle" fill="#5D38D8" font-family="Aptos, 'Segoe UI', sans-serif" font-size="44" font-weight="700" letter-spacing="2">GREEKMARKET</text>
+  <rect x="248" y="248" width="464" height="372" rx="42" fill="#FFFFFF" stroke="#E4DAFF" stroke-width="18"/>
+  <rect x="318" y="318" width="324" height="206" rx="28" fill="#F4EFFF" stroke="#D8CAFF" stroke-width="10"/>
+  <circle cx="572" cy="374" r="28" fill="#B093FF"/>
+  <path d="M360 484 450 396l64 64 44-42 82 66H360Z" fill="#C8B5FF"/>
+  <rect x="272" y="674" width="416" height="28" rx="14" fill="#E4DAFF"/>
+  <rect x="334" y="726" width="292" height="22" rx="11" fill="#EDE7FF"/>
+  <text x="480" y="816" text-anchor="middle" fill="#6B4DE6" font-family="Aptos, 'Segoe UI', sans-serif" font-size="28" font-weight="700" letter-spacing="1">ADD PHOTOS TO PERSONALIZE</text>
+  <defs>
+    <linearGradient id="frameGlow" x1="144" y1="132" x2="822" y2="858" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEE7FF"/>
+      <stop offset="1" stop-color="#D8CAFF"/>
+    </linearGradient>
+  </defs>
+</svg>

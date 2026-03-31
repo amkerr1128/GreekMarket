@@ -1,0 +1,80 @@
+.stripe-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 96px;
+}
+
+.stripe-card {
+  padding: 28px;
+  display: grid;
+  gap: 16px;
+}
+
+.stripe-card h1 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+
+.stripe-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.stripe-pill {
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.stripe-pill.success {
+  background: rgba(34, 197, 94, 0.14);
+  color: rgb(34, 197, 94);
+}
+
+.stripe-error {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  background: rgba(239, 107, 107, 0.12);
+  color: #ff9b9b;
+}
+
+.stripe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.secondary-action,
+.primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.85rem 1.1rem;
+  font-weight: 800;
+}
+
+.secondary-action {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text);
+}
+
+.primary-action {
+  border: 0;
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+}
+
+.primary-action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

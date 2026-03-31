@@ -1,0 +1,111 @@
+.fancy-select {
+  position: relative;
+  min-width: 0;
+}
+
+.fancy-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-strong) 88%, transparent), var(--bg-surface)),
+    var(--bg-surface);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+}
+
+.fancy-select-trigger:hover {
+  box-shadow: var(--shadow);
+}
+
+.fancy-select-copy {
+  min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+
+.fancy-select-value {
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+.fancy-select-meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.fancy-select-chevron {
+  width: 18px;
+  height: 18px;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: transform 0.18s ease;
+}
+
+.fancy-select.open .fancy-select-chevron {
+  transform: rotate(180deg);
+}
+
+.fancy-select.disabled {
+  opacity: 0.6;
+}
+
+.fancy-select-menu {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 10px);
+  z-index: 25;
+  padding: 8px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--bg-surface) 88%, var(--bg-strong));
+}
+
+.fancy-select-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0.9rem 0.95rem;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.fancy-select-option:hover,
+.fancy-select-option.active {
+  background: color-mix(in srgb, var(--brand-soft) 82%, var(--bg-surface));
+  border-color: color-mix(in srgb, var(--brand) 16%, var(--border));
+}
+
+.fancy-select-option-copy {
+  min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+
+.fancy-select-option-label {
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+.fancy-select-option-meta {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.fancy-select-check {
+  width: 18px;
+  height: 18px;
+  color: var(--brand-strong);
+  flex-shrink: 0;
+}

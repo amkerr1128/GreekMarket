@@ -1,4 +1,7 @@
 from datetime import datetime
+
+from sqlalchemy.orm import synonym
+
 from . import db
 
 
@@ -42,6 +45,69 @@ class User(db.Model):
     stripe_account_id = db.Column(db.String(128), nullable=True)
 
 
+class PendingRegistration(db.Model):
+    __tablename__ = "pending_registrations"
+    registration_id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(255), nullable=False, index=True)
+    phone_number = db.Column(db.String(32), nullable=True)
+    handle = db.Column(db.String(50), nullable=False, index=True)
+    password_hash = db.Column(db.Text, nullable=False)
+    school_id = db.Column(db.Integer, db.ForeignKey("schools.school_id"), nullable=False)
+    preferred_method = db.Column(db.String(20), nullable=False, default="email")  # email | phone
+    status = db.Column(db.String(20), nullable=False, default="pending")  # pending | verified | expired | cancelled
+    verification_method = db.Column(db.String(20), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    verified_at = db.Column(db.DateTime, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+
+    school = db.relationship("School", lazy=True)
+    user = db.relationship("User", foreign_keys=[user_id], lazy=True)
+
+
+class ContactVerificationChallenge(db.Model):
+    __tablename__ = "contact_verification_challenges"
+    challenge_id = db.Column(db.Integer, primary_key=True)
+    registration_id = db.Column(db.Integer, db.ForeignKey("pending_registrations.registration_id"), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+    purpose = db.Column(db.String(20), nullable=False)  # signup | profile
+    contact_method = db.Column(db.String(20), nullable=False)  # email | phone
+    contact_value = db.Column(db.String(255), nullable=False)
+    code_hash = db.Column(db.String(255), nullable=False)
+    code_salt = db.Column(db.String(64), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="pending")  # pending | verified | expired | revoked
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+    max_attempts = db.Column(db.Integer, nullable=False, default=5)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    sent_at = db.Column(db.DateTime, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    verified_at = db.Column(db.DateTime, nullable=True)
+    delivery_channel = db.Column(db.String(20), nullable=True)
+    provider_message_id = db.Column(db.String(255), nullable=True)
+
+    registration = db.relationship("PendingRegistration", foreign_keys=[registration_id], lazy=True)
+    user = db.relationship("User", foreign_keys=[user_id], lazy=True)
+
+
+class UserContactMethod(db.Model):
+    __tablename__ = "user_contact_methods"
+    contact_method_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    contact_method = db.Column(db.String(20), nullable=False)  # email | phone
+    contact_value = db.Column(db.String(255), nullable=False)
+    is_primary = db.Column(db.Boolean, default=False)
+    verified_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="contact_methods", lazy=True)
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "contact_method", "contact_value", name="uq_user_contact_method_value"),
+    )
+
+
 class Chapter(db.Model):
     __tablename__ = "chapters"
     chapter_id = db.Column(db.Integer, primary_key=True)
@@ -81,6 +147,24 @@ class SchoolMembership(db.Model):
     joined_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+class UserFollow(db.Model):
+    __tablename__ = "user_follows"
+    follower_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), primary_key=True)
+    followed_user_id = db.Column("followed_id", db.Integer, db.ForeignKey("users.user_id"), primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    follower = db.relationship("User", foreign_keys=[follower_id], lazy=True)
+    followed = db.relationship("User", foreign_keys=[followed_user_id], lazy=True)
+    followed_id = synonym("followed_user_id")
+
+
+class ChapterFollow(db.Model):
+    __tablename__ = "chapter_follows"
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), primary_key=True)
+    chapter_id = db.Column(db.Integer, db.ForeignKey("chapters.chapter_id"), primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
 class SchoolJoinRequest(db.Model):
     __tablename__ = "school_join_requests"
     id = db.Column(db.Integer, primary_key=True)
@@ -96,9 +180,16 @@ class ChapterJoinRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     chapter_id = db.Column(db.Integer, db.ForeignKey("chapters.chapter_id"), nullable=False)
+    requested_role = db.Column(db.String(20), nullable=False, default="member")  # member|admin
+    note = db.Column(db.Text)
     status = db.Column(db.String(20), nullable=False, default="pending")  # pending|approved|rejected
+    reviewed_by = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     decided_at = db.Column(db.DateTime)
+
+    requester = db.relationship("User", foreign_keys=[user_id], lazy=True)
+    chapter = db.relationship("Chapter", foreign_keys=[chapter_id], lazy=True)
+    reviewer = db.relationship("User", foreign_keys=[reviewed_by], lazy=True)
 
 
 class Ban(db.Model):
@@ -188,11 +279,72 @@ class Message(db.Model):
     recipient = db.relationship("User", foreign_keys=[recipient_id], backref="received_messages", lazy=True)
 
 
+class MessageReply(db.Model):
+    __tablename__ = "message_replies"
+    message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"), primary_key=True)
+    reply_to_message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    message = db.relationship("Message", foreign_keys=[message_id], lazy=True)
+    reply_to = db.relationship("Message", foreign_keys=[reply_to_message_id], lazy=True)
+
+
+class MessageReaction(db.Model):
+    __tablename__ = "message_reactions"
+    reaction_id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    emoji = db.Column(db.String(16), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    message = db.relationship("Message", backref="reactions", lazy=True)
+    user = db.relationship("User", lazy=True)
+
+    __table_args__ = (db.UniqueConstraint("message_id", "user_id", name="uq_message_reactions_message_user"),)
+
+
 class PinnedConversation(db.Model):
     __tablename__ = "pinned_conversations"
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), primary_key=True)
     other_user_id = db.Column(db.Integer, primary_key=True)
     pinned_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# --------------------------
+# Notifications
+# --------------------------
+class Notification(db.Model):
+    __tablename__ = "notifications"
+    notification_id = db.Column(db.Integer, primary_key=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    actor_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+    event_type = db.Column(db.String(50), nullable=False)
+    event_key = db.Column(db.String(255), nullable=True)
+    title = db.Column(db.String(255), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    action_url = db.Column(db.Text, nullable=True)
+    payload = db.Column(db.JSON, nullable=False, default=dict)
+    read_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    recipient = db.relationship("User", foreign_keys=[recipient_id], lazy=True)
+    actor = db.relationship("User", foreign_keys=[actor_id], lazy=True)
+
+    __table_args__ = (
+        db.UniqueConstraint("recipient_id", "event_type", "event_key", name="uq_notifications_recipient_event"),
+    )
+
+
+class RateLimitBucket(db.Model):
+    __tablename__ = "rate_limit_buckets"
+    bucket_key = db.Column(db.String(255), primary_key=True)
+    scope = db.Column(db.String(100), nullable=False, index=True)
+    identifier = db.Column(db.String(255), nullable=False)
+    window_start = db.Column(db.Integer, nullable=False, index=True)
+    request_count = db.Column(db.Integer, nullable=False, default=0)
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 # --------------------------
@@ -222,6 +374,19 @@ class UserReport(db.Model):
     reported_user = db.relationship("User", foreign_keys=[reported_user_id], backref="user_reports_received")
 
 
+class MessageReport(db.Model):
+    __tablename__ = "message_reports"
+    report_id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey("messages.message_id"), nullable=False)
+    reporter_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
+    reason = db.Column(db.String(255), nullable=False)
+    details = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    message = db.relationship("Message", backref="reports", lazy=True)
+    reporter = db.relationship("User", backref="message_reports", lazy=True)
+
+
 class BlockedUser(db.Model):
     __tablename__ = "blocked_users"
     block_id = db.Column(db.Integer, primary_key=True)
@@ -230,6 +395,55 @@ class BlockedUser(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (db.UniqueConstraint("user_id", "blocked_user_id", name="uq_blocked_pair"),)
+
+
+# --------------------------
+# Admin / Support
+# --------------------------
+class SiteAdmin(db.Model):
+    __tablename__ = "site_admins"
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), primary_key=True)
+    granted_by = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", foreign_keys=[user_id], lazy=True)
+    granted_by_user = db.relationship("User", foreign_keys=[granted_by], lazy=True)
+
+
+class ModerationReview(db.Model):
+    __tablename__ = "moderation_reviews"
+    review_id = db.Column(db.Integer, primary_key=True)
+    report_type = db.Column(db.String(20), nullable=False)  # post | user
+    report_id = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="open")  # open | in_progress | resolved | dismissed
+    action_taken = db.Column(db.String(50))
+    note = db.Column(db.Text)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+    reviewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    reviewer = db.relationship("User", foreign_keys=[reviewed_by], lazy=True)
+
+    __table_args__ = (db.UniqueConstraint("report_type", "report_id", name="uq_moderation_review_report"),)
+
+
+class SupportTicket(db.Model):
+    __tablename__ = "support_tickets"
+    ticket_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+    email = db.Column(db.String(255), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    category = db.Column(db.String(50), nullable=False, default="general")
+    message = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="open")  # open | in_progress | resolved
+    priority = db.Column(db.String(20), nullable=False, default="normal")  # low | normal | high | urgent
+    assigned_to = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=True)
+    resolution_note = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+
+    submitter = db.relationship("User", foreign_keys=[user_id], lazy=True)
+    assignee = db.relationship("User", foreign_keys=[assigned_to], lazy=True)
 
 
 # --------------------------
